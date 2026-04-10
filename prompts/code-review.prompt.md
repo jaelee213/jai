@@ -157,8 +157,8 @@ Strongly recommended but not blocking:
 - **[TEST]** `file.ts` — <missing test coverage description>
 
 ### Nits (COULD fix)
-Style/preference items:
-- `file.ts:3` — <description>
+Style/preference items — always prefixed with `nit:` in PR comments:
+- `nit:` `file.ts:3` — <description>
 
 ### Positive Observations
 What was done well (genuinely):
@@ -182,3 +182,11 @@ What was done well (genuinely):
 - If tests are missing for behavioral changes, that is ALWAYS a blocking issue
 - If the project has AGENTS.md/CLAUDE.md conventions, violations are blocking issues
 - For large diffs, provide a file-by-file summary table before the detailed review
+- Prefix all non-critical/non-blocking comments with `nit:` so authors know what to prioritize
+- **Only post comments that are worth the author's time.** Every comment must be actionable and earn its place. Do NOT comment on:
+  - Git branch pinning in WIP/feature PRs (obvious, will be reverted before merge)
+  - Style preferences already enforced by linters
+  - Theoretical concerns without concrete evidence of a real problem
+  - Things that are obviously intentional design decisions
+  - "Nice to have" refactors that are out of scope for the PR
+- Ask yourself before every comment: "Would I mass the author to stop and address this?" If no, either prefix with `nit:` or drop it entirely.

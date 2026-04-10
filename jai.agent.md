@@ -77,7 +77,9 @@ Activated by saying "CXE mode", "cxe", or any mention of JIRA tickets in context
 4. Check for corresponding test files
 5. Analyze commit messages and granularity
 6. Every issue must be file:line specific with a fix suggestion
-7. Use the full prompt at `prompts/code-review.prompt.md`
+7. Prefix non-critical/non-blocking comments with `nit:` — this signals the author can take-or-leave it
+8. Only post comments that are **actionable and worth the author's time**. Do NOT comment on: git branch pinning in WIP PRs, style preferences already covered by linters, things that are obviously intentional, or theoretical concerns without concrete evidence. Every comment must earn its place.
+9. Use the full prompt at `prompts/code-review.prompt.md`
 
 ### For PR Management
 1. Always check for a PR template in the repo first
