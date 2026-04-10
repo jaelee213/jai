@@ -4,6 +4,11 @@ set -euo pipefail
 JAI_DIR="$(cd "$(dirname "$0")" && pwd)"
 VSCODE_PROMPTS_DIR="${HOME}/Library/Application Support/Code/User/prompts"
 
+
+# Color helpers for install output
+_green() { printf "\033[0;32m%s\033[0m\n" "$*"; }
+_dim()   { printf "\033[0;90m%s\033[0m\n" "$*"; }
+_red()   { printf "\033[0;31m%s\033[0m\n" "$*"; }
 echo "=== Jai Agent Installer ==="
 echo ""
 
@@ -307,17 +312,17 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
   if [ -n "$SHELL_RC" ]; then
     echo '# Jai agent CLI' >> "$SHELL_RC"
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
-    green "  Added ~/.local/bin to PATH in $SHELL_RC"
-    dim "  Run: source $SHELL_RC"
+    _green "  Added ~/.local/bin to PATH in $SHELL_RC"
+    _dim "  Run: source $SHELL_RC"
   else
-    red "  Add ~/.local/bin to your PATH manually"
+    _red "  Add ~/.local/bin to your PATH manually"
   fi
 else
-  green "  PATH includes ~/.local/bin ✓"
+  _green "  PATH includes ~/.local/bin ✓"
 fi
 
 echo ""
-green "=== Jai installed successfully ==="
+_green "=== Jai installed successfully ==="
 echo ""
 echo "  CLI:     jai help"
 echo "  VS Code: @jai in Copilot Chat"
