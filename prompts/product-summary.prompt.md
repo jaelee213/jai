@@ -48,6 +48,8 @@ For each open question:]
 
 ---
 **Estimate:** [T-shirt size] ([day range])
+**Estimate Confidence:** [HIGH / MEDIUM / LOW] — [One sentence explaining why, in non-technical terms]
+**Estimate Assumptions:** [2-4 bullet points — conditions that must hold for the estimate to be accurate. Plain language, no jargon. Example: "No changes needed to how signing notifications work" or "Existing in-flight offers won't need manual intervention"]
 **Status:** [e.g., "Ready to build — no blockers" or "Blocked on Q2 — needs customer input"]
 ```
 
