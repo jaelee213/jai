@@ -62,7 +62,7 @@ ensure_gh() {
 do_review() {
   ensure_git
   local base="${1:-$BASE_BRANCH}"
-  
+
   bold "Code Review: $(git rev-parse --abbrev-ref HEAD) vs $base"
   echo ""
 
@@ -76,7 +76,7 @@ do_review() {
   file_count=$(git diff "$base"...HEAD --name-only 2>/dev/null | wc -l | tr -d ' ')
   local line_summary
   line_summary=$(git diff "$base"...HEAD --shortstat 2>/dev/null || echo "unknown")
-  
+
   dim "Files changed: $file_count | $line_summary"
   dim "Commits: $(git log "$base"..HEAD --oneline --no-merges 2>/dev/null | wc -l | tr -d ' ')"
   echo ""
@@ -87,7 +87,7 @@ do_review() {
 
   echo "Opening VS Code Copilot with review prompt..."
   echo ""
-  
+
   # Open in VS Code and copy prompt
   local prompt="@jai review this branch against \`$base\`. Follow prompts/code-review.prompt.md exactly."
   if command -v code &>/dev/null; then
@@ -135,7 +135,7 @@ do_pr_create() {
       break
     fi
   done
-  
+
   [ -z "$template" ] && dim "No PR template found — will use default format"
   echo ""
 
@@ -154,7 +154,7 @@ do_pr_feedback() {
 
   local pr_number
   pr_number=$(gh pr view --json number -q '.number' 2>/dev/null || true)
-  
+
   if [ -z "$pr_number" ]; then
     red "No PR found for current branch."
     exit 1
@@ -212,6 +212,16 @@ do_cxe() {
       bold "CXE Build Plan: $ticket"
       local prompt="@jai CXE mode. Generate phased build and deployment plan for $ticket. Follow prompts/cxe-mode.prompt.md build plan section exactly. Include deployment sequence with gates and monitoring."
       ;;
+    summary)
+      [ -z "$ticket" ] && { red "Usage: jai cxe summary <TICKET-ID>"; exit 1; }
+      bold "CXE Product Summary: $ticket"
+      local prompt="@jai CXE mode. Generate product-friendly summary for $ticket. Follow prompts/product-summary.prompt.md exactly. Read implementation plan from ~/lever/cxe-triage-agent/implementation_plans/$ticket.md if it exists. Save to ~/lever/cxe-triage-agent/implementation_plans/$ticket-product-summary.md."
+      ;;
+    audit)
+      [ -z "$ticket" ] && { red "Usage: jai cxe audit <TICKET-ID>"; exit 1; }
+      bold "CXE Deep Analysis: $ticket"
+      local prompt="@jai CXE mode. Run the 3-agent deep analysis audit on $ticket. Read skills/deep-analysis-skill.md and the implementation plan at ~/lever/cxe-triage-agent/implementation_plans/$ticket.md. Append findings to the plan."
+      ;;
     *)
       red "Usage: jai cxe <triage|approach|plan> <TICKET-ID>"
       exit 1
@@ -237,6 +247,8 @@ $(green "Usage:")
   jai cxe triage <ticket>          Triage a JIRA ticket (S/M/L)
   jai cxe approach <ticket>        Generate approach doc
   jai cxe plan <ticket>            Generate phased build + deployment plan
+  jai cxe summary <ticket>         Generate product-friendly summary
+  jai cxe audit <ticket>           Run 3-agent deep analysis audit
   jai help                         This help message
 
 $(green "Options:")
@@ -256,6 +268,8 @@ $(green "Examples:")
   jai cxe triage CXE-1234          Triage JIRA ticket
   jai cxe approach CXE-1234        Full approach doc
   jai cxe plan CXE-1234            Phased build plan
+  jai cxe summary CXE-1234         Product-friendly summary
+  jai cxe audit CXE-1234           3-agent deep analysis audit
 HELP
 }
 
@@ -308,7 +322,7 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
   SHELL_RC=""
   [ -f "$HOME/.zshrc" ] && SHELL_RC="$HOME/.zshrc"
   [ -z "$SHELL_RC" ] && [ -f "$HOME/.bashrc" ] && SHELL_RC="$HOME/.bashrc"
-  
+
   if [ -n "$SHELL_RC" ]; then
     echo '# Jai agent CLI' >> "$SHELL_RC"
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"

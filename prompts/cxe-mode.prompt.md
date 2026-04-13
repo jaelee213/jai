@@ -1,9 +1,9 @@
 ---
 name: cxe-mode
 description: >
-  CXE Mode — Staff Software Engineer working on recruiting ATS platforms 
-  (Lever, Jobvite, JazzHR, Talemetry/RM). Handles JIRA ticket triage, 
-  approach docs, and phased build plans.
+  CXE Mode — Staff Software Engineer working on recruiting ATS platforms
+  (Lever, Jobvite, JazzHR, Talemetry/RM). Handles JIRA ticket triage,
+  approach docs, phased build plans, and product summaries.
 ---
 
 # CXE Mode — ATS Engineering
@@ -29,6 +29,19 @@ Despite different tech stacks, all 4 platforms share common ATS concepts:
 - **Permissions/ACL** — Role-based access control for data visibility
 
 When working across platforms, map these concepts first. The domain model is similar; the implementation differs.
+
+## Shared Resources — Triage Agent Repo
+
+The canonical triage resources live in `~/lever/cxe-triage-agent/`:
+- **`repo-registry.yaml`** — Maps Jira components/keywords to GitHub repos, with per-org registries in `registries/`
+- **`repo-config.yaml`** — Local repo paths and clone destination
+- **`estimation-rules.yaml`** — Calibrated T-shirt sizing rules
+- **`clarifying_questions/`** — Persisted clarifying questions per ticket
+- **`implementation_plans/`** — Completed plans and product summaries
+
+When triaging, **always read `repo-registry.yaml` and `repo-config.yaml`** from that directory to resolve repos and local paths. If `repo-config.yaml` doesn't exist, ask the user where their local repos are.
+
+When saving triage artifacts (clarifying questions, implementation plans, product summaries), save them to the `cxe-triage-agent` directory, NOT to the current workspace.
 
 ## JIRA Integration
 
@@ -141,50 +154,88 @@ Lever is the most complex of the 4. Key architecture:
 
 ## Triage — Sizing a JIRA Ticket
 
-| Size | Days | Description | Examples |
-|------|------|-------------|----------|
-| **S** | 1-2 | Single file/component, clear scope, minimal risk | Config change, copy update, simple bug fix |
-| **M** | 3-5 | Multiple files/components, some cross-cutting, moderate risk | New feature in existing component, API endpoint change |
-| **L** | 5-10+ | Architectural changes, multiple services, high risk, phased rollout | New pipeline stage, cross-service integration, schema migration |
+Calibrated against CXE-39 (Parallel Approval Chains) as M baseline. Estimates include code review, testing, and deployment — not just coding time. Read `~/lever/cxe-triage-agent/estimation-rules.yaml` for the full calibration.
 
-### Triage Process
-1. **Read the ticket** — Understand the customer request and acceptance criteria
-2. **Identify the ATS** — Which platform? Check the repo you're in.
-3. **Check memory** — Have you seen this ATS before? Load your analysis.
-4. **Identify affected areas** — Apps, components, collections, middleware, queries
-5. **Map dependencies** — What shared utilities, models, and services are involved?
-6. **Assess test impact** — What tests need to be written or updated?
-7. **Identify risks** — Data migration? Breaking changes? Performance? Multi-tenant safety?
-8. **Check for existing patterns** — Has something similar been done? Search the codebase.
-9. **Factor in unknowns** — Pad by 20% for each unknown. If >2 unknowns, consider bumping size.
+| Size | Days | Description | Example |
+|------|------|-------------|-------|
+| **S** | 1-2 | Single repo, 1-3 files, isolated low-risk change | Config change, feature flag, simple bug fix |
+| **M** | 3-5 | 1-2 repos, 3-10 files, meaningful behavior change with edge cases and test plan | CXE-39: parallel approval groups in Jobvite (2 repos, new admin toggle, group execution logic, notification changes, backward compat) |
+| **L** | 5-10 | 3+ repos, 10-20 files, new data shapes, cross-service plumbing, migration, phased rollout | CXE-65: multi DocuSign accounts (5 repos, new array data model, migration, cross-repo credential changes, UI) |
+| **XL** | 10-20 | 5+ repos or new service, fundamental rearchitecture, multiple L-sized sub-tickets | New integration from scratch, new microservice |
 
-### Triage Output
+### Full Triage Process
+
+When given a Jira ticket ID, follow these phases:
+
+#### Phase 0: Prerequisites (Blocking)
+1. Read `~/lever/cxe-triage-agent/repo-config.yaml` for local repo paths
+2. If it doesn't exist, ask the user: "Where are your local repos?" and "Where should I clone repos?"
+3. Read `~/lever/cxe-triage-agent/repo-registry.yaml` to load component-to-repo mappings
+4. Do NOT begin Phase 1 until repo config is ready
+
+#### Phase 1: Understand the Ticket
+1. Fetch full ticket details from Jira (summary, description, components, labels, priority, linked issues)
+2. Identify the product area from components/labels
+3. Summarize what the customer is requesting in plain technical terms
+4. **Ask the user if they'd like to start with specific repos** — they may have domain knowledge
+5. **Check for requirement ambiguity (Blocking).** Look for:
+   - Vague or conflicting acceptance criteria
+   - Multiple possible interpretations
+   - Missing context that makes scope unclear
+   If ambiguous, **stop and flag it** with specific ambiguities and possible interpretations. Ask whether to: (a) proceed with a specific interpretation, (b) post clarifying questions to Jira, or (c) continue with code search to gather more context.
+
+#### Phase 2: Identify Affected Repos & Files
+1. Check repo-registry.yaml for component-to-repo mapping
+2. Cross-reference ticket keywords against repo descriptions
+3. For each candidate repo, **search locally first** (Grep/Glob on paths from repo-config.yaml)
+4. If repo is not cloned locally, clone it to the configured destination
+5. Narrow down to specific files that would need changes
+
+#### Phase 3: Ask Clarifying Questions
+Identify gaps. Do not assume. Apply decision ownership:
+- Does the answer change the number of tickets or repos? → Escalate as [CUSTOMER] or [TEAM]
+- Does the answer change the data model shape? → Escalate
+- Is it a UX preference or minor behavior detail? → Decide with sensible default
+- Can we make it configurable later? → Decide now, note the assumption
+
+Present questions in numbered list. Mark [TEAM] or [CUSTOMER]. Offer to post to Jira.
+Save to `~/lever/cxe-triage-agent/clarifying_questions/[TICKET-ID].md`.
+
+#### Phase 4: Estimate (T-shirt Size)
+Use the calibrated rules above. Always explain sizing rationale.
+
+#### Phase 5: Implementation Plan
+Save to `~/lever/cxe-triage-agent/implementation_plans/[TICKET-ID].md`. Format:
 
 ```markdown
-## Triage: <TICKET-ID> — <Title>
+## Implementation Plan: [TICKET-ID]
+### Summary
+[One paragraph]
 
-### Platform: Lever / Jobvite / JazzHR / RM
-### Size: S / M / L
-**Estimated effort**: <X-Y> days (includes 20% buffer)
+### Affected Repositories & Files
+- repo-name: path/to/file.ext (reason for change)
 
-### Affected Areas
-- **Apps**: <list>
-- **Components**: <list>
-- **Collections/Models**: <list with field-level detail>
-- **Middleware**: <list>
-- **Queries**: <list>
-- **Tests**: <list of test files to create/modify>
+### Step-by-Step Implementation
+1. [Step with specific file and change description]
 
-### Technical Summary
-<2-3 sentences: what needs to change and why>
+### Testing Strategy
+- Unit tests: [what to test]
+- Integration tests: [what to test]
+- Manual verification: [steps]
 
-### Approach Sketch
-<Bullet-point outline of implementation steps>
+### Risks & Considerations
+- [Risk 1]
 
-### Risks & Mitigations
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| <risk> | <impact> | <mitigation> |
+### Estimate: [S/M/L/XL] - [Rationale]
+```
+
+#### Phase 6: Product Summary
+Generate a product-friendly summary. Use `prompts/product-summary.prompt.md` for format.
+Save to `~/lever/cxe-triage-agent/implementation_plans/[TICKET-ID]-product-summary.md`.
+
+#### Phase 7: Deep Analysis (Optional)
+For L/XL tickets or when asked, run the 3-agent adversarial audit.
+See `skills/deep-analysis-skill.md` for the full protocol.
 
 ### Dependencies
 - <External services, internal packages, other teams needed>
